@@ -124,21 +124,55 @@
         })
         return trend
       },
+      getAvgGain () {
+        let gains = []
+        for (let i = 1; i < 12; i++) {
+          let day = this.$store.getters.getCurrentData[this.convertDate(this.createDateFrom(-i))]
+          let prevDay = this.$store.getters.getCurrentData[this.convertDate(this.createDateFrom(-(i+1)))]
+          if (day > prevDay) {
+            gains.push((day-prevDay)/day)
+          }
+        }
+        let total = 0;
+        for (let i = 0; i < gains.length; i++){
+          total += gains[i];
+        }
+        console.log("avg gain", total / gains.length)
+        return total / gains.length
+      },
+      getAvgLoss () {
+        let loss = []
+        for (let i = 1; i < 12; i++) {
+          let day = this.$store.getters.getCurrentData[this.convertDate(this.createDateFrom(-i))]
+          let prevDay = this.$store.getters.getCurrentData[this.convertDate(this.createDateFrom(-(i+1)))]
+          if (day <= prevDay) {
+            loss.push((day-prevDay)/day)
+          }
+        }
+        let total = 0;
+        for (let i = 0; i < loss.length; i++){
+          total += loss[i];
+        }
+        console.log("avg loss", total / loss.length)
+        return total / loss.length
+      },
       predictFuture () {
         let future = {}
 
-        for (var i = 1; i < 10; i++) {
+        for (var i = 1; i < 21; i++) {
           let last = 0;
           if (i == 1) {
             last = this.$store.getters.currentPriceValue
           } else {
             last = future[this.convertDate(this.createDateFrom(i-1))]
           }
-          console.log(last)
-          let max = Number(last) + (Number(last) * Number(this.config.maxGain))
-          let min = Number(last) - (Number(last) * Number(this.config.maxLost))
+          let max = Number(last) + (Number(last) * Number(this.getAvgGain))
+          let min = Number(last) - (Number(last) * Math.abs(Number(this.getAvgLoss)))
+          console.log("max", max)
+          console.log("min", min)
 
           let next = (Math.random() * (max - min)) + min
+          console.log("next" + i, next)
           future[this.convertDate(this.createDateFrom(i))] = +next.toFixed(6)
         }
 
