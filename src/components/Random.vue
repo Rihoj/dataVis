@@ -124,9 +124,29 @@
         })
         return trend
       },
+      predictFuture () {
+        let future = {}
+
+        for (var i = 1; i < 10; i++) {
+          let last = 0;
+          if (i == 1) {
+            last = this.$store.getters.currentPriceValue
+          } else {
+            last = future[this.convertDate(this.createDateFrom(i-1))]
+          }
+          console.log(last)
+          let max = Number(last) + (Number(last) * Number(this.config.maxGain))
+          let min = Number(last) - (Number(last) * Number(this.config.maxLost))
+
+          let next = (Math.random() * (max - min)) + min
+          future[this.convertDate(this.createDateFrom(i))] = +next.toFixed(6)
+        }
+
+        return future
+      },
       graphData () {
         return {
-          labels: Object.keys(this.$store.getters.getCurrentData),
+          labels: Object.keys({...this.$store.getters.getCurrentData, ...this.predictFuture}),
           datasets: [
             {
               label: 'trend',
@@ -136,6 +156,11 @@
               label: 'BT value',
               backgroundColor: 'blue',
               data: Object.values(this.$store.getters.getCurrentData),
+            },
+            {
+              label: 'BT Potential',
+              backgroundColor: 'green',
+              data: Object.values({...this.$store.getters.getCurrentData, ...this.predictFuture}),
             },
             // {
             //   label: 'portfolio',
@@ -156,6 +181,18 @@
       this.reset()
     },
     methods: {
+      createDateFrom(days) {
+        let currentDate = new Date()
+        currentDate.setDate(currentDate.getDate() + days)
+        return new Date(currentDate)
+      },
+      // CODE DUP!!!
+      convertDate(d){
+        let ye = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(d);
+        let mo = new Intl.DateTimeFormat('en', { month: '2-digit' }).format(d);
+        let da = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(d);
+        return `${ye}-${mo}-${da}`
+      },
       reset() {
         this.state.data.labels = []
         this.state.data.values = []
