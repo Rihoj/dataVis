@@ -2,16 +2,20 @@
   <div class="container">
     <div class="row">
       <div class="col chart">
-        <line-chart :chart-data="datacollection"></line-chart>
+        <line-chart :chart-data="graphData"></line-chart>
         <button @click="reset()">Randomize</button>
         <button @click="runSim()">Resimulate</button>
       </div>
     </div>
-
+    <div class="row">
+      <div class="col">
+        <BPI></BPI>
+      </div>
+    </div>
     <div class="row">
       <div class="col">
         <h3>starting values</h3>
-        <label class="labelWidth">comodity: </label><input v-model="config.btStart" type="text"> <br/>
+        <label class="labelWidth">comodity: </label><input disabled="disabled" v-model="this.btStart" type="text"> <br/>
         <label class="labelWidth">bank: </label><input v-model="config.startValue" type="text"> <br/>
         <label class="labelWidth">days: </label><input v-model="config.days" type="text"> <br/>
         <label class="labelWidth">maxGain: </label><input v-model="config.maxGain" type="text"> <br/>
@@ -55,16 +59,17 @@
 
 <script>
   import LineChart from './LineChart'
+  import BPI from './BPI'
 
   export default {
     components: {
-      LineChart
+      LineChart,
+      BPI
     },
     data () {
       return {
         config: {
-          btStart: 59000, // value of coin at start
-          startValue: 2000,
+          startValue: 300,
           startBank: 0,
           maxGain: .05,
           maxLost: .04,
@@ -101,14 +106,59 @@
         logText: ''
       }
     },
+    computed: {
+      btStart () { // value of coin at start
+        return this.$store.getters.currentPriceValue
+      },
+      trend () {
+        let lastFew = [];
+        let trend = []
+
+        Object.values(this.$store.getters.getCurrentData).map((val) => {
+          lastFew.push(val)
+          if(lastFew.length > this.config.trendDays) {
+            lastFew.shift()
+          }
+
+          trend.push(lastFew.reduce((a, b) => a + b) / lastFew.length)
+        })
+        return trend
+      },
+      graphData () {
+        return {
+          labels: Object.keys(this.$store.getters.getCurrentData),
+          datasets: [
+            {
+              label: 'trend',
+              data: this.trend
+            },
+            {
+              label: 'BT value',
+              backgroundColor: 'blue',
+              data: Object.values(this.$store.getters.getCurrentData),
+            },
+            // {
+            //   label: 'portfolio',
+            //   backgroundColor: '#ff3300',
+            //   data: this.computedValues.portfolio
+            // },
+            // {
+            //   label: 'bank',
+            //   backgroundColor: '#ff6600',
+            //   data: this.computedValues.bank
+            // }
+          ]
+        }
+      }
+    },
     mounted () {
+      this.$store.dispatch('getCoinDeskHistory', this.config.days)
       this.reset()
     },
     methods: {
       reset() {
         this.state.data.labels = []
         this.state.data.values = []
-
         this.loadData()
 
         this.runSim()
@@ -142,8 +192,8 @@
         this.fillChartData()
       },
       nextValue (last) {
-        let max = last + (last * this.config.maxGain)
-        let min = last - (last * this.config.maxLost)
+        let max = Number(last) + (Number(last) * Number(this.config.maxGain))
+        let min = Number(last) - (Number(last) * Number(this.config.maxLost))
 
         let next = (Math.random() * (max - min)) + min
         return +next.toFixed(6)
@@ -175,12 +225,11 @@
         }
       },
       loadData() {
-        let last = this.config.btStart
+        let last = this.btStart
         for (var i = 0; i < this.config.days; i++) {
           last = this.nextValue(last)
           this.state.data.labels.push(i);
           this.state.data.values.push(last);
-          // console.log(last)
         }
       },
       calculateTrends() {

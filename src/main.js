@@ -1,5 +1,7 @@
 import Vue from 'vue'
+import Vuex from 'vuex'
 import App from './App.vue'
+import Store from './store'
 
 Vue.config.productionTip = false
 
@@ -13,9 +15,11 @@ import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 Vue.use(BootstrapVue)
-
+Vue.use(Vuex)
+var store = Store()
 
 // App
 new Vue({
+  store,
   render: h => h(App),
 }).$mount('#app')
